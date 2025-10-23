@@ -1,13 +1,24 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>GoogleMapsApp</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-</head>
-<body>
-  <app-root></app-root>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Google Maps App</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <app-root></app-root>
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDsQFLjCBLETFL_dgv56mkIsAWILDByzFw&libraries=places&loading=async"
+      async
+      defer
+    ></script>
+
+    <!-- ✅ New required script for the Place Autocomplete web component -->
+    <!-- <script
+      type="module"
+      crossorigin="anonymous"
+      src="https://esm.run/@googlemaps/extended-component-library@0.6.14"
+    ></script> -->
+  </body>
 </html>
