@@ -1,12 +1,10 @@
 <div class="container">
   <h1>Angular Google Maps Explorer</h1>
 
-  <!-- ✅ Visible new Place Autocomplete Web Component -->
   <input
     #searchInput
     id="autocomplete"
     type="text"
-    placeholder="Search for a location..."
     (keydown.enter)="onManualSearch()"
     style="
       width: 100%;
@@ -28,16 +26,10 @@
   >
     <map-marker
       *ngIf="markerPosition"
-      #mapMarker
       [position]="markerPosition"
       [options]="markerOptions"
-      #marker
     ></map-marker>
 
     <map-info-window>{{ infoContent }}</map-info-window>
   </google-map>
-
-  <button class="theme-btn" (click)="toggleTheme()">
-    Toggle {{ darkMode ? 'Day' : 'Night' }} Mode
-  </button>
 </div>

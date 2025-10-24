@@ -33,57 +33,35 @@ export class AppComponent implements AfterViewInit {
 
   //
 
-  //
-
   ngAfterViewInit() {
-    // Initialize geocoder once maps API is ready
+    // Check if autocomplete element is ready
     if (!google || !google.maps) {
-      console.error('Google Maps API not loaded');
+      console.error('Autocomplete element not found');
       return;
     }
-  }
 
-  searchPlace() {
-    const query = this.searchInput.nativeElement.value;
-    if (!query) return;
-
-    const geocoder = new google.maps.Geocoder();
-
-    geocoder.geocode({ address: query }, (results, status) => {
-      if (status === 'OK' && results && results[0]) {
-        const location = results[0].geometry.location;
-        this.center = {
-          lat: location.lat(),
-          lng: location.lng(),
-        };
-        this.markerPosition = this.center;
-        this.zoom = 15;
-        this.infoContent = `
-          <strong>${results[0].formatted_address}</strong>
-        `;
-      } else {
-        alert('Location not found: ' + status);
-      }
+    const autocomplete = new google.maps.places.Autocomplete(this.searchInput.nativeElement, {
+      fields: ['formatted_address', 'geometry', 'name'],
+      types: ['geocode'],
     });
-  }
 
-  // Move the logic into a separate method for clarity
-  private handlePlaceChange(event: any) {
-    const place = event.target.value;
-    if (!place || !place.location) {
-      console.warn('No valid place found');
-      return;
-    }
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
 
-    const loc = place.location;
-    this.center = { lat: loc.lat(), lng: loc.lng() };
-    this.markerPosition = this.center;
-    this.zoom = 15;
+      if (!place.geometry || !place.geometry.location) {
+        alert('No details available for this location.');
+        return;
+      }
 
-    this.infoContent = `
-      <strong>${place.displayName || 'Unknown Place'}</strong><br>
-      ${place.formattedAddress || ''}
-    `;
+      const loc = place.geometry.location;
+      this.center = { lat: loc.lat(), lng: loc.lng() };
+      this.markerPosition = this.center;
+      this.zoom = 15;
+      this.infoContent = `
+        <strong>${place.name || 'Unknown Place'}</strong><br>
+        ${place.formatted_address || ''}
+      `;
+    });
   }
 
   onManualSearch() {
@@ -104,12 +82,12 @@ export class AppComponent implements AfterViewInit {
     });
   }
 
-  onMapClick(event: google.maps.MapMouseEvent) {
-    if (event.latLng) {
-      this.markerPosition = event.latLng.toJSON();
-      this.infoContent = `Clicked at: ${event.latLng.lat()}, ${event.latLng.lng()}`;
-    }
-  }
+  //   onMapClick(event: google.maps.MapMouseEvent) {
+  //     if (event.latLng) {
+  //       this.markerPosition = event.latLng.toJSON();
+  //       this.infoContent = `Clicked at: ${event.latLng.lat()}, ${event.latLng.lng()}`;
+  //     }
+  //   }
 
   openInfoWindow() {
     if (this.mapMarker) {
@@ -117,7 +95,24 @@ export class AppComponent implements AfterViewInit {
     }
   }
 
-  toggleTheme() {
-    this.darkMode = !this.darkMode;
+  onMapClick(event: google.maps.MapMouseEvent) {
+    if (!event.latLng) return;
+
+    const lat = event.latLng.lat();
+    const lng = event.latLng.lng();
+    this.center = { lat, lng };
+    this.markerPosition = this.center;
+
+    // Reverse geocode clicked position
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status === 'OK' && results && results[0]) {
+        this.infoContent = `
+          <strong>${results[0].formatted_address}</strong>
+        `;
+      } else {
+        this.infoContent = 'No address found for this location.';
+      }
+    });
   }
 }
