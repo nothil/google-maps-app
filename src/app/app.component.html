@@ -1,35 +1,62 @@
-<div class="container">
-  <h1>Angular Google Maps Explorer</h1>
+<div class="page-wrapper">
+  <div class="left-panel">
+    <h1>{{ infoContent ? 'Location Details' : 'Explore a Place' }}</h1>
 
-  <input
-    #searchInput
-    id="autocomplete"
-    type="text"
-    (keydown.enter)="onManualSearch()"
-    style="
-      width: 100%;
-      max-width: 600px;
-      margin: 10px auto 20px;
-      display: block;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    "
-  />
+    <div class="search-container">
+      <input
+        #searchInput
+        id="autocomplete"
+        type="text"
+        (keydown.enter)="onManualSearch()"
+        placeholder="Search for a city or address"
+        class="search-box"
+      />
+    </div>
 
-  <google-map
-    height="500px"
-    width="100%"
-    [center]="center"
-    [zoom]="zoom"
-    (mapClick)="onMapClick($event)"
-  >
-    <map-marker
-      *ngIf="markerPosition"
-      [position]="markerPosition"
-      [options]="markerOptions"
-    ></map-marker>
+    <div *ngIf="infoContent" class="place-details">
+      <div class="image-section">
+        <img
+          [src]="photoUrl"
+          alt="Image of {{ formattedInfo }}"
+          onerror="this.onerror=null;this.src='https://source.unsplash.com/600x400/?activity'"
+        />
+      </div>
 
-    <map-info-window>{{ infoContent }}</map-info-window>
-  </google-map>
+      <div class="info-section">
+        <h2>Selected Location</h2>
+        <p [innerHTML]="infoContent"></p>
+      </div>
+
+      <div *ngIf="nearbyActivities.length" class="activities-card">
+        <h2>Fun Things to Do Nearby</h2>
+        <ul style="list-style-type: disc; padding-left: 20px">
+          <li *ngFor="let activity of nearbyActivities">
+            <strong>{{ activity.name }}</strong> ({{ activity.vicinity }})
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <p *ngIf="!infoContent" style="margin-top: 2rem; color: #8b949e">
+      Use the search bar above or click on the map to explore a location!
+    </p>
+  </div>
+
+  <div class="right-panel">
+    <google-map
+      height="100%"
+      width="100%"
+      [center]="center"
+      [zoom]="zoom"
+      (mapClick)="onMapClick($event)"
+    >
+      <map-marker
+        *ngIf="markerPosition"
+        [position]="markerPosition"
+        [options]="markerOptions"
+      ></map-marker>
+
+      <map-info-window>{{ infoContent }}</map-info-window>
+    </google-map>
+  </div>
 </div>
