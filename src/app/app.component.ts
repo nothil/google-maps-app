@@ -2,7 +2,6 @@ import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleMapsModule } from '@angular/google-maps';
 
-//  Tell TypeScript about the global Google object
 declare const google: any;
 
 @Component({
@@ -20,64 +19,97 @@ export class AppComponent implements AfterViewInit {
   markerPosition: any = null;
   infoContent = '';
   formattedInfo = '';
+  infoWindowContent = '';
+  photoUrls: string[] = [];
 
   markerOptions: google.maps.MarkerOptions = { animation: google.maps.Animation.DROP };
 
-  photoUrl: string = '';
-
-  nearbyActivities: { name: string; vicinity: string }[] = [];
+  nearbyActivities: {
+    id?: string;
+    name: string;
+    vicinity: string;
+    rating: number | string;
+  }[] = [];
 
   constructor() {}
 
-  private getNearbyAttractions(lat: number, lng: number) {
-    if (!google?.maps?.places?.PlacesService) {
-      this.nearbyActivities = [{ name: 'Places Service not loaded.', vicinity: '' }];
-      return;
-    }
+  private async getNearbyAttractions(lat: number, lng: number) {
+    try {
+      if (!google?.maps?.places?.Place) {
+        this.nearbyActivities = [
+          { name: 'Places API (new) not loaded.', vicinity: '', rating: '' },
+        ];
+        return;
+      }
 
-    const tempMap = new google.maps.Map(document.createElement('div'));
-    const placesService = new google.maps.places.PlacesService(tempMap);
+      const { Place, SearchNearbyRankPreference } = google.maps.places;
 
-    const request = {
-      location: new google.maps.LatLng(lat, lng),
-      radius: 5000,
-      type: ['tourist_attraction', 'park', 'museum', 'restaurant', 'shopping_mall'],
-      rankby: google.maps.places.RankBy.PROMINENCE,
-    };
+      const request = {
+        fields: ['id', 'displayName', 'formattedAddress', 'rating', 'location'],
+        locationRestriction: { center: { lat, lng }, radius: 5000 },
+        includedTypes: ['tourist_attraction', 'park', 'museum', 'restaurant', 'cafe'],
+        maxResultCount: 5,
+        rankPreference: SearchNearbyRankPreference.POPULARITY,
+      };
 
-    placesService.nearbySearch(request, (results: any, status: string) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        this.nearbyActivities = results.slice(0, 5).map((place: any) => ({
-          name: place.name,
-          vicinity: place.vicinity,
-        }));
+      const { places } = await Place.searchNearby(request);
+
+      if (places && places.length > 0) {
+        this.nearbyActivities = places.map((p: any) => {
+          const primaryName = p.displayName?.text;
+          const fallbackName =
+            p.formattedAddress?.split(',')[0] || p.location?.toString() || 'Local Attraction';
+
+          const finalName = primaryName ?? fallbackName;
+
+          return {
+            id: p.id ?? '',
+            name: finalName,
+            vicinity: p.formattedAddress ?? '',
+            rating: p.rating ?? 'N/A',
+          };
+        });
       } else {
         this.nearbyActivities = [
-          { name: 'Could not find any fun activities nearby.', vicinity: '' },
+          { name: 'No nearby fun activities found', vicinity: '', rating: '' },
         ];
       }
-    });
+    } catch (error) {
+      console.error('Error fetching nearby activities (new API):', error);
+      this.nearbyActivities = [{ name: 'Error loading activities.', vicinity: '', rating: '' }];
+    }
   }
 
-  private updatePlace(lat: number, lng: number, name: string, address: string, placePhoto?: any) {
+  private updatePlace(
+    lat: number,
+    lng: number,
+    name: string,
+    address: string,
+    placePhoto?: any,
+    place?: any
+  ) {
     this.center = { lat, lng };
     this.markerPosition = this.center;
     this.zoom = 14;
 
-    this.photoUrl = placePhoto
-      ? placePhoto.getUrl({ maxWidth: 600, maxHeight: 400 })
-      : 'https://source.unsplash.com/600x400/?city';
-
     this.formattedInfo = name || address.split(',')[0] || 'city';
 
-    // Set infoContent for the map info-window
+    let photos: any[] = [];
+
+    if (place?.photos?.length) {
+      photos = place.photos.slice(0, 4);
+      this.photoUrls = photos.map((p) => p.getUrl({ maxWidth: 600, maxHeight: 400 }));
+    } else {
+      this.photoUrls = [`https://source.unsplash.com/600x400/?${this.formattedInfo}`];
+    }
+
     this.infoContent = `<strong>${name}</strong><br>${address}`;
+    this.infoWindowContent = this.infoContent;
 
     this.getNearbyAttractions(lat, lng);
   }
 
   ngAfterViewInit() {
-    // Small delay ensures DOM element exists
     setTimeout(() => {
       const input = this.autocompleteEl?.nativeElement;
       if (!input || !google?.maps?.places) {
@@ -103,20 +135,20 @@ export class AppComponent implements AfterViewInit {
           place.geometry.location.lng(),
           place.name || place.formatted_address,
           place.formatted_address || '',
-          firstPhoto
+          place.photos && place.photos.length > 0 ? place.photos[0] : undefined,
+
+          place
         );
       });
-    }, 500); // Added safety delay
+    }, 1000);
   }
 
-  //  Implemented required method for map clicks
   onMapClick(event: google.maps.MapMouseEvent): void {
     if (!event.latLng || !google?.maps?.Geocoder) return;
 
     const lat = event.latLng.lat();
     const lng = event.latLng.lng();
 
-    // Reverse Geocode the location to get an address/name for the info-window
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
       let name = 'Clicked Location';
@@ -130,11 +162,10 @@ export class AppComponent implements AfterViewInit {
         address = results[0].formatted_address;
       }
 
-      this.updatePlace(lat, lng, name, address, undefined);
+      this.updatePlace(lat, lng, name, address, undefined, undefined);
     });
   }
 
-  // Placeholder for manual search if user presses enter
   onManualSearch(): void {
     console.log('Manual search triggered (Autcomplete is generally preferred for best results).');
   }

@@ -7,19 +7,21 @@
         #searchInput
         id="autocomplete"
         type="text"
-        (keydown.enter)="onManualSearch()"
         placeholder="Search for a city or address"
         class="search-box"
       />
     </div>
 
     <div *ngIf="infoContent" class="place-details">
-      <div class="image-section">
-        <img
-          [src]="photoUrl"
-          alt="Image of {{ formattedInfo }}"
-          onerror="this.onerror=null;this.src='https://source.unsplash.com/600x400/?activity'"
-        />
+      <div class="image-section-container">
+        <div class="image-section">
+          <img
+            *ngFor="let url of photoUrls"
+            [src]="url"
+            alt="Image of {{ formattedInfo }}"
+            onerror="this.onerror=null;this.src='https://source.unsplash.com/600x400/?activity'"
+          />
+        </div>
       </div>
 
       <div class="info-section">
@@ -29,9 +31,17 @@
 
       <div *ngIf="nearbyActivities.length" class="activities-card">
         <h2>Fun Things to Do Nearby</h2>
-        <ul style="list-style-type: disc; padding-left: 20px">
-          <li *ngFor="let activity of nearbyActivities">
-            <strong>{{ activity.name }}</strong> ({{ activity.vicinity }})
+
+        <ul class="activities-list">
+          <li *ngFor="let activity of nearbyActivities" class="activity-item">
+            <strong>{{ activity.name }}</strong>
+
+            <span *ngIf="activity.rating && activity.rating !== 'N/A'">
+              — ★ {{ activity.rating }}
+            </span>
+
+            <br />
+            <small>{{ activity.vicinity }}</small>
           </li>
         </ul>
       </div>
@@ -56,7 +66,7 @@
         [options]="markerOptions"
       ></map-marker>
 
-      <map-info-window>{{ infoContent }}</map-info-window>
+      <map-info-window>{{ infoWindowContent }}</map-info-window>
     </google-map>
   </div>
 </div>
